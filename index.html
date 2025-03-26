@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+     <html>
+     <head>
+         <title>垃圾分类识别</title>
+         <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs"></script>
+     </head>
+     <body>
+         <h1>上传垃圾图片</h1>
+         <input type="file" id="upload" accept="image/*">
+         < img id="preview" width="300">
+         <p id="result"></p >
+
+         <script>
+             let model;
+             // 加载模型
+             async function loadModel() {
+                 model = await tf.loadLayersModel('model/model.json');
+                 console.log("模型加载完成！");
+             }
+             // 预测
+             document.getElementById('upload').onchange = async (e) => {
+                 const img = document.getElementById('preview');
+                 img.src = URL.createObjectURL(e.target.files[0]);
+                 
+                 // 等待图片加载
+                 await new Promise(resolve => img.onload = resolve);
+                 
+                 // 预处理图像
+                 const tensor = tf.browser.fromPixels(img)
+                     .resizeNearestNeighbor([224, 224])  // 调整尺寸需与训练时一致
+                     .toFloat()
+                     .div(255.0)  // 归一化（如果训练时做了归一化）
+                     .expandDims();
+                 
+                 // 预测
+                 const prediction = await model.predict(tensor).data();
+                 const classes = ['塑料', '纸张', '电池'];  // 替换为你的类别
+                 const maxIndex = prediction.indexOf(Math.max(...prediction));
+                 document.getElementById('result').innerText = `分类结果：${classes[maxIndex]}`;
+             };
+             loadModel(); // 页面加载时初始化
+         </script>
+     </body>
+     </html>
